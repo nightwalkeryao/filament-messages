@@ -39,7 +39,7 @@
             <div class="grid w-full">
                 @foreach ($this->conversations as $conversation)
                     <a wire:key="{{ $conversation->id }}" wire:navigate
-                        href="{{ Messages::getUrl(tenant: filament()->getTenant()) . '/' . $conversation->id }}"
+                        href="{{ Messages::getPageUrl(tenant: filament()->getTenant()) . '/' . $conversation->id }}"
                         @class([
                             'p-2 rounded-xl w-full mb-2',
                             'hover:bg-gray-100 hover:bg-gray-100 dark:hover:bg-white/10' => $conversation->id != $selectedConversation?->id,

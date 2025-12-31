@@ -8,7 +8,7 @@ use Filament\Actions\Contracts\HasActions;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Support\Enums\MaxWidth;
+use Filament\Support\Enums\Width;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
@@ -113,7 +113,7 @@ class Inbox extends Component implements HasActions, HasForms
             ])
             ->modalHeading(__('Create New Message'))
             ->modalSubmitActionLabel(__('Send'))
-            ->modalWidth(MaxWidth::Large)
+            ->modalWidth(Width::Large)
             ->action(function (array $data) {
                 $userIds = collect($data['user_ids'])->push(Auth::id())->map(fn ($userId) => (int)$userId);
                 $totalUserIds = $userIds->count();
@@ -137,7 +137,7 @@ class Inbox extends Component implements HasActions, HasForms
                     'read_at' => [now()],
                     'notified' => [Auth::id()],
                 ]);
-                redirect(\Raseldev99\FilamentMessages\Filament\Pages\Messages::getUrl(['id' => $inboxId]));
+                redirect(\Raseldev99\FilamentMessages\Filament\Pages\Messages::getPageUrl(['id' => $inboxId]));
             })->extraAttributes([
                 'class' => 'w-full'
             ]);

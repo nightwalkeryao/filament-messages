@@ -3,12 +3,10 @@
 namespace Raseldev99\FilamentMessages;
 
 use Filament\Support\Assets\Asset;
-use Filament\Support\Facades\FilamentIcon;
 use Raseldev99\FilamentMessages\Livewire\Messages\Inbox;
 use Raseldev99\FilamentMessages\Livewire\Messages\Messages;
 use Raseldev99\FilamentMessages\Livewire\Messages\Search;
 use Raseldev99\FilamentMessages\Commands\FilamentMessagesCommand;
-use Livewire\Livewire;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -71,13 +69,16 @@ class FilamentMessagesServiceProvider extends PackageServiceProvider
      */
     public function packageBooted(): void
     {
-        // Icon Registration
-        FilamentIcon::register($this->getIcons());
+        // Icon Registration (v4 compatibility)
+        \Raseldev99\FilamentMessages\Support\FilamentCompat::registerIcons($this->getIcons());
 
-        // Livewire
-        Livewire::component('fm-inbox', Inbox::class);
-        Livewire::component('fm-messages', Messages::class);
-        Livewire::component('fm-search', Search::class);
+        // Assets (best-effort)
+        \Raseldev99\FilamentMessages\Support\FilamentCompat::registerAssets($this->getAssets());
+
+        // Livewire (register using compat helper to avoid edge cases)
+        \Raseldev99\FilamentMessages\Support\FilamentCompat::registerLivewireComponent('fm-inbox', Inbox::class);
+        \Raseldev99\FilamentMessages\Support\FilamentCompat::registerLivewireComponent('fm-messages', Messages::class);
+        \Raseldev99\FilamentMessages\Support\FilamentCompat::registerLivewireComponent('fm-search', Search::class);
     }
 
     /**

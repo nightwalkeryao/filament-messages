@@ -3,14 +3,17 @@
 namespace Raseldev99\FilamentMessages\Filament\Pages;
 
 use Filament\Pages\Page;
-use Filament\Support\Enums\MaxWidth;
+use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\Auth;
 use Raseldev99\FilamentMessages\Models\Inbox;
 
 class Messages extends Page
 {
-    protected static string $view = 'filament-messages::filament.pages.messages';
+    /**
+     * Filament v4 expects the $view property to be non-static on Page.
+     */
+    protected string $view = 'filament-messages::filament.pages.messages';
 
     public ?Inbox $selectedConversation;
 
@@ -19,9 +22,39 @@ class Messages extends Page
      *
      * @return string The slug with an optional ID placeholder.
      */
-    public static function getSlug(): string
+    public static function getSlug(?\Filament\Panel $panel = null): string
     {
         return config('filament-messages.slug') . '/{id?}';
+    }
+
+    /**
+     * Compatibility helper for building the page URL across Filament versions.
+     *
+     * Accepts an optional array of route parameters and an optional tenant.
+     */
+    /**
+     * Compatibility helper for building the page URL across Filament versions.
+     *
+     * Note: we avoid overriding Filament\Pages\Page::getUrl to keep signatures compatible.
+     */
+    public static function getPageUrl(array $params = [], $tenant = null): string
+    {
+        // Build the URL based on configured slug and Filament path.
+        // We intentionally avoid calling the parent implementation to keep tests
+        // and bootstrapping simple in package contexts.
+
+        $slug = static::getSlug();
+        $id = $params['id'] ?? null;
+
+        $base = rtrim(config('filament.path', '/admin'), '/');
+
+        $url = url($base . '/' . trim(str_replace('{id?}', '', $slug), '/'));
+
+        if ($id) {
+            $url .= '/' . $id;
+        }
+
+        return $url;
     }
 
     /**
@@ -160,9 +193,9 @@ class Messages extends Page
      * from the configuration file. It defaults to the value specified in the
      * `filament-messages.max_content_width` configuration option.
      *
-     * @return \Filament\Support\Enums\MaxWidth|string|null The maximum content width.
+     * @return \Filament\Support\Enums\Width|string|null The maximum content width.
      */
-    public function getMaxContentWidth(): MaxWidth | string | null
+    public function getMaxContentWidth(): Width | string | null
     {
         return config('filament-messages.max_content_width');
     }

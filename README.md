@@ -13,7 +13,7 @@
 ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 ![PHP Version](https://img.shields.io/badge/PHP-8.2-blue?style=flat-square&logo=php)
 ![Laravel Version](https://img.shields.io/badge/Laravel-11.0-red?style=flat-square&logo=laravel)
-![Filament Version](https://img.shields.io/badge/Filament-3.2-purple?style=flat-square)
+![Filament Version](https://img.shields.io/badge/Filament-4.0-purple?style=flat-square)
 
 **Key Features:**
 - **Seamless Integration:** Designed specifically for FilamentPHP, making it easy to integrate into your admin panel.
@@ -51,10 +51,10 @@ php artisan filament-messages:install
 ## Prerequisite
 This plugin utilizes Filament Spatie Media Library. Please follow the steps below.
 
-Install the plugin with Composer:
+Install the plugin with Composer (Filament v4 compatible):
 
 ```bash
-composer require filament/spatie-laravel-media-library-plugin:"^3.2" -W
+composer require filament/spatie-laravel-media-library-plugin:"^4.0" -W
 ```
 
 If you haven't already done so, you need to publish the migration to create the media table:
@@ -129,6 +129,29 @@ These are [Filament Plugins](https://filamentphp.com/plugins) use for this proje
 - [Report a bug](https://github.com/jeddsaliba/filament-messages/issues)
 - [Request a feature](https://github.com/jeddsaliba/filament-messages/issues)
 - [Email support](mailto:jeddsaliba@gmail.com)
+
+## Filament v4 Compatibility ✅
+
+This package now targets **Filament v4** (minimum v4.0). If you are upgrading from Filament v3, note the following:
+
+- Breaking change: the package now **requires Filament v4** and drops official support for v3.
+- Config change: the `filament-messages.max_content_width` config previously referenced the `\Filament\Support\Enums\MaxWidth` enum. It now accepts a **string** (for example: `"full"`, `"large"`, `"medium"`). Update your config if you customized this value.
+- The package includes compatibility shims for icon/asset registration and Livewire component registration to work reliably with Filament v4.
+
+Migration steps:
+
+1. Update Filament and the Spatie media plugin:
+
+```bash
+composer require filament/filament:"^4.0" filament/spatie-laravel-media-library-plugin:"^4.0" -W
+```
+
+2. Update your `config/filament-messages.php` to set `max_content_width` to a string value (e.g. `'full'`).
+3. Run `composer update` and clear caches: `php artisan optimize:clear`.
+
+If you run into issues, open an issue and include Laravel/Filament versions and any stack traces.
+
+---
 
 ## Show Your Support
 
