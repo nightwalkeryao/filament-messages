@@ -17,7 +17,7 @@
             </div>
         </div>
         <div style="--col-span-default: span 2 / span 2;" class="col-[--col-span-default]">
-            {{ $this->createConversation }}
+            {{ $this->createConversationAction }}
         </div>
         <div style="--col-span-default: 1 / -1;" class="col-[--col-span-default]">
             <x-filament::input.wrapper suffix-icon="heroicon-o-magnifying-glass">

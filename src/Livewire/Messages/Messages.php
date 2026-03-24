@@ -2,11 +2,12 @@
 
 namespace Raseldev99\FilamentMessages\Livewire\Messages;
 
-use Filament\Forms;
+use Filament\Actions\Action;
+use Filament\Forms\Components;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Schema as Form;
 use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
@@ -15,13 +16,13 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Computed;
+use Livewire\Component;
+use Livewire\WithPagination;
 use Raseldev99\FilamentMessages\Enums\MediaCollectionType;
 use Raseldev99\FilamentMessages\Livewire\Traits\CanMarkAsRead;
 use Raseldev99\FilamentMessages\Livewire\Traits\CanValidateFiles;
 use Raseldev99\FilamentMessages\Livewire\Traits\HasPollInterval;
-use Livewire\Attributes\Computed;
-use Livewire\Component;
-use Livewire\WithPagination;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class Messages extends Component implements HasForms
@@ -34,7 +35,7 @@ class Messages extends Component implements HasForms
 
     public Collection $conversationMessages;
 
-    public ?array $data = [];
+    public null|array $data = [];
 
     public bool $showUpload = false;
 
@@ -72,11 +73,15 @@ class Messages extends Component implements HasForms
     public function pollMessages(): void
     {
         $latestId = $this->conversationMessages->pluck('id')->first();
-        $polledMessages = $this->selectedConversation->messages()->where('id', '>', $latestId)->latest()->get();
+        $polledMessages = $this->selectedConversation
+            ->messages()
+            ->where('id', '>', $latestId)
+            ->latest()
+            ->get();
         if ($polledMessages->isNotEmpty()) {
             $this->conversationMessages = collect([
                 ...$polledMessages,
-                ...$this->conversationMessages
+                ...$this->conversationMessages,
             ]);
         }
     }
@@ -110,40 +115,38 @@ class Messages extends Component implements HasForms
      * - The 'message' field is a textarea that supports live updates
      *   and automatically adjusts its height based on the content.
      *
-     * @param Form $form The form instance.
-     * @return Form The customized form instance.
+     * @return Form
      */
-    public function form(Form $form): Form
+    public function form(): Form
     {
-        return $form
+        return Form::make($this)
             ->schema([
-                Forms\Components\SpatieMediaLibraryFileUpload::make('attachments')
+                Components\SpatieMediaLibraryFileUpload::make('attachments')
                     ->hiddenLabel()
                     ->collection(MediaCollectionType::FILAMENT_MESSAGES->value)
                     ->multiple()
                     ->panelLayout('grid')
-                    ->visible(fn () => $this->showUpload)
+                    ->visible(fn() => $this->showUpload)
                     ->maxFiles(config('filament-messages.attachments.max_files'))
                     ->minFiles(config('filament-messages.attachments.min_files'))
                     ->maxSize(config('filament-messages.attachments.max_file_size'))
                     ->minSize(config('filament-messages.attachments.min_file_size'))
                     ->live(),
-                Forms\Components\Split::make([
-                    Forms\Components\Actions::make([
-                        Forms\Components\Actions\Action::make('show_hide_upload')
+                Components\Textarea::make('message')
+                    ->live()
+                    ->hiddenLabel()
+                    ->rows(1)
+                    ->autosize()
+                    ->hintAction(
+                        Action::make('show_hide_upload')
                             ->hiddenLabel()
                             ->icon('heroicon-o-paper-clip')
                             ->color('gray')
                             ->tooltip(__('Attach Files'))
-                            ->action(fn () => $this->showUpload = !$this->showUpload),
-                    ])->grow(false),
-                    Forms\Components\Textarea::make('message')
-                        ->live()
-                        ->hiddenLabel()
-                        ->rows(1)
-                        ->autosize(),
-                ])->verticallyAlignEnd(),
-            ])->statePath('data');
+                            ->action(fn() => $this->showUpload = !$this->showUpload),
+                    ),
+            ])
+            ->statePath('data');
     }
 
     /**
@@ -168,17 +171,28 @@ class Messages extends Component implements HasForms
             DB::transaction(function () use ($data, $rawData) {
                 $this->showUpload = false;
 
-                $newMessage = $this->selectedConversation->messages()->create([
-                    'message' => $data['message'] ?? null,
-                    'user_id' => Auth::id(),
-                    'read_by' => [Auth::id()],
-                    'read_at' => [now()],
-                    'notified' => [Auth::id()],
-                ]);
+                $newMessage = $this->selectedConversation
+                    ->messages()
+                    ->create([
+                        'message' => $data['message'] ?? null,
+                        'user_id' => Auth::id(),
+                        'read_by' => [Auth::id()],
+                        'read_at' => [now()],
+                        'notified' => [Auth::id()],
+                    ]);
 
                 $this->conversationMessages->prepend($newMessage);
                 collect($rawData['attachments'])->each(function ($attachment) use ($newMessage) {
-                    $newMessage->addMedia($attachment)->usingFileName(Str::slug(config('filament-messages.slug'), '_') . '_' . Str::random(20) .'.'.$attachment->extension())->toMediaCollection(MediaCollectionType::FILAMENT_MESSAGES->value);
+                    $newMessage
+                        ->addMedia($attachment)
+                        ->usingFileName(
+                            Str::slug(config('filament-messages.slug'), '_')
+                            . '_'
+                            . Str::random(20)
+                            . '.'
+                            . $attachment->extension(),
+                        )
+                        ->toMediaCollection(MediaCollectionType::FILAMENT_MESSAGES->value);
                 });
 
                 $this->form->fill();
@@ -194,7 +208,6 @@ class Messages extends Component implements HasForms
                 ->title(__('Something went wrong'))
                 ->body($exception->getMessage())
                 ->danger()
-                ->persistent()
                 ->send();
         }
     }
@@ -209,7 +222,7 @@ class Messages extends Component implements HasForms
      * @return Paginator The paginator instance
      * for the conversation messages.
      */
-    #[Computed()]
+    #[Computed]
     public function paginator(): Paginator
     {
         return $this->selectedConversation->messages()->latest()->paginate(10, ['*'], 'page', $this->currentPage);
@@ -250,7 +263,7 @@ class Messages extends Component implements HasForms
      *
      * @return Application|Factory|View|\Illuminate\View\View
      */
-    public function render(): Application | Factory | View | \Illuminate\View\View
+    public function render(): Application|Factory|View|\Illuminate\View\View
     {
         return view('filament-messages::livewire.messages.messages');
     }

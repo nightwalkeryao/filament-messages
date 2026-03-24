@@ -8,17 +8,18 @@ use Filament\Actions\Contracts\HasActions;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Support\Enums\MaxWidth;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Support\Enums\Width;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
+use Livewire\Component;
 use Raseldev99\FilamentMessages\FilamentMessages;
 use Raseldev99\FilamentMessages\Livewire\Traits\CanMarkAsRead;
 use Raseldev99\FilamentMessages\Livewire\Traits\CanValidateFiles;
 use Raseldev99\FilamentMessages\Livewire\Traits\HasPollInterval;
-use Livewire\Attributes\On;
-use Livewire\Component;
 
 class Inbox extends Component implements HasActions, HasForms
 {
@@ -55,7 +56,9 @@ class Inbox extends Component implements HasActions, HasForms
         return \Raseldev99\FilamentMessages\Models\Inbox::whereJsonContains('user_ids', Auth::id())
             ->whereHas('messages', function ($query) {
                 $query->whereJsonDoesntContain('read_by', Auth::id());
-            })->get()->count();
+            })
+            ->get()
+            ->count();
     }
 
     /**
@@ -95,7 +98,7 @@ class Inbox extends Component implements HasActions, HasForms
             ->form([
                 Forms\Components\Select::make('user_ids')
                     ->label(__('Select User(s)'))
-                    ->options(fn () => \App\Models\User::whereNotIn('id', [Auth::id()])->get()->pluck('name', 'id'))
+                    ->options(fn() => \App\Models\User::whereNotIn('id', [Auth::id()])->get()->pluck('name', 'id'))
                     ->preload(false)
                     ->multiple()
                     ->searchable()
@@ -103,7 +106,7 @@ class Inbox extends Component implements HasActions, HasForms
                     ->live(),
                 Forms\Components\TextInput::make('title')
                     ->label(__('Group Name'))
-                    ->visible(function (Forms\Get $get) {
+                    ->visible(function (Get $get) {
                         return collect($get('user_ids'))->count() > 1;
                     }),
                 Forms\Components\Textarea::make('message')
@@ -113,16 +116,18 @@ class Inbox extends Component implements HasActions, HasForms
             ])
             ->modalHeading(__('Create New Message'))
             ->modalSubmitActionLabel(__('Send'))
-            ->modalWidth(MaxWidth::Large)
+            ->modalWidth(Width::Large)
             ->action(function (array $data) {
-                $userIds = collect($data['user_ids'])->push(Auth::id())->map(fn ($userId) => (int)$userId);
+                $userIds = collect($data['user_ids'])->push(Auth::id())->map(fn($userId) => (int) $userId);
                 $totalUserIds = $userIds->count();
-                $inbox = \Raseldev99\FilamentMessages\Models\Inbox::whereRaw("JSON_CONTAINS(user_ids, \"$userIds\") AND JSON_LENGTH(user_ids) = $totalUserIds")->first();
+                $inbox = \Raseldev99\FilamentMessages\Models\Inbox::whereRaw(
+                    "JSON_CONTAINS(user_ids, \"$userIds\") AND JSON_LENGTH(user_ids) = $totalUserIds",
+                )->first();
                 $inboxId = null;
                 if (!$inbox) {
                     $inbox = \Raseldev99\FilamentMessages\Models\Inbox::create([
                         'title' => $data['title'] ?? null,
-                        'user_ids' => $userIds
+                        'user_ids' => $userIds,
                     ]);
                     $inboxId = $inbox->getKey();
                 } else {
@@ -130,16 +135,19 @@ class Inbox extends Component implements HasActions, HasForms
                     $inbox->save();
                     $inboxId = $inbox->getKey();
                 }
-                $inbox->messages()->create([
-                    'message' => $data['message'],
-                    'user_id' => Auth::id(),
-                    'read_by' => [Auth::id()],
-                    'read_at' => [now()],
-                    'notified' => [Auth::id()],
-                ]);
+                $inbox
+                    ->messages()
+                    ->create([
+                        'message' => $data['message'],
+                        'user_id' => Auth::id(),
+                        'read_by' => [Auth::id()],
+                        'read_at' => [now()],
+                        'notified' => [Auth::id()],
+                    ]);
                 redirect(\Raseldev99\FilamentMessages\Filament\Pages\Messages::getUrl(['id' => $inboxId]));
-            })->extraAttributes([
-                'class' => 'w-full'
+            })
+            ->extraAttributes([
+                'class' => 'w-full',
             ]);
     }
 
@@ -152,7 +160,7 @@ class Inbox extends Component implements HasActions, HasForms
      *
      * @return Application|Factory|View|\Illuminate\View\View
      */
-    public function render(): Application | Factory | View | \Illuminate\View\View
+    public function render(): Application|Factory|View|\Illuminate\View\View
     {
         return view('filament-messages::livewire.messages.inbox');
     }
