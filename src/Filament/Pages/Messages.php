@@ -8,7 +8,7 @@ use Raseldev99\FilamentMessages\Models\Inbox;
 
 class Messages extends Page
 {
-    protected static string $view = 'filament-messages::filament.pages.messages';
+    protected string $view = 'filament-messages::filament.pages.messages';
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chat-bubble-left-right';
 
